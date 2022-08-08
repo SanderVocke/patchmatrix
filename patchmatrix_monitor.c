@@ -163,6 +163,7 @@ main(int argc, char **argv)
 	static monitor_app_t monitor;
 	const size_t total_size = sizeof(monitor_shm_t);
 
+	const char *client_name = PATCHMATRIX_MONITOR_ID;
 	const char *server_name = NULL;
 	unsigned nsinks = 1;
 	monitor.type = TYPE_AUDIO;
@@ -173,7 +174,7 @@ main(int argc, char **argv)
 		"Released under Artistic License 2.0 by Open Music Kontrollers\n", argv[0]);
 
 	int c;
-	while((c = getopt(argc, argv, "vht:i:n:")) != -1)
+	while((c = getopt(argc, argv, "vht:i:n:c:")) != -1)
 	{
 		switch(c)
 		{
@@ -204,7 +205,9 @@ main(int argc, char **argv)
 					"   [-h]                 print usage information\n"
 					"   [-t] port-type       port type (audio, midi)\n"
 					"   [-i] input-num       port input number (1-%i)\n"
-					"   [-n] server-name     connect to named JACK daemon\n\n"
+					"   [-n] server-name     connect to named JACK daemon\n"
+					"   [-c] client-name     JACK client name to use\n\n"
+
 					, argv[0], PORT_MAX);
 				return 0;
 			case 'n':
@@ -217,6 +220,9 @@ main(int argc, char **argv)
 				nsinks = atoi(optarg);
 				if(nsinks > PORT_MAX)
 					nsinks = PORT_MAX;
+				break;
+			case 'c':
+				client_name = optarg;
 				break;
 			case '?':
 				if( (optopt == 'n') || (optopt == 'u') || (optopt == 't')
@@ -237,7 +243,7 @@ main(int argc, char **argv)
 		opts |= JackServerName;
 
 	jack_status_t status;
-	monitor.client = jack_client_open(PATCHMATRIX_MONITOR_ID, opts, &status,
+	monitor.client = jack_client_open(client_name, opts, &status,
 		server_name ? server_name : NULL);
 	if(!monitor.client)
 		return -1;
@@ -271,7 +277,7 @@ main(int argc, char **argv)
 		monitor.jsinks[i] = jsink;
 	}
 
-	const char *client_name = jack_get_client_name(monitor.client);
+	client_name = jack_get_client_name(monitor.client);
 	const int fd = shm_open(client_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 	if(fd != -1)
 	{

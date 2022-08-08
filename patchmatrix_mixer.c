@@ -384,6 +384,7 @@ main(int argc, char **argv)
 	const size_t total_size = sizeof(mixer_shm_t);
 
 	const char *server_name = NULL;
+	const char *client_name = PATCHMATRIX_MIXER_ID;
 	unsigned nsinks = 1;
 	unsigned nsources = 1;
 	mixer.type = TYPE_AUDIO;
@@ -394,7 +395,7 @@ main(int argc, char **argv)
 		"Released under Artistic License 2.0 by Open Music Kontrollers\n", argv[0]);
 
 	int c;
-	while((c = getopt(argc, argv, "vht:i:o:n:")) != -1)
+	while((c = getopt(argc, argv, "vht:i:o:n:c:")) != -1)
 	{
 		switch(c)
 		{
@@ -426,7 +427,8 @@ main(int argc, char **argv)
 					"   [-t] port-type       port type (audio, midi)\n"
 					"   [-i] input-num       port input number (1-%i)\n"
 					"   [-o] output-num      port output number (1-%i)\n"
-					"   [-n] server-name     connect to named JACK daemon\n\n"
+					"   [-n] server-name     connect to named JACK daemon\n"
+					"   [-c] client-name     JACK client name to use\n\n"
 					, argv[0], PORT_MAX, PORT_MAX);
 				return 0;
 			case 'n':
@@ -444,6 +446,9 @@ main(int argc, char **argv)
 				nsources = atoi(optarg);
 				if(nsources > PORT_MAX)
 					nsources = PORT_MAX;
+				break;
+			case 'c':
+				client_name = optarg;
 				break;
 			case '?':
 				if( (optopt == 'n') || (optopt == 'u') || (optopt == 't')
@@ -464,7 +469,7 @@ main(int argc, char **argv)
 		opts |= JackServerName;
 
 	jack_status_t status;
-	mixer.client = jack_client_open(PATCHMATRIX_MIXER_ID, opts, &status,
+	mixer.client = jack_client_open(client_name, opts, &status,
 		server_name ? server_name : NULL);
 	if(!mixer.client)
 		return -1;
@@ -542,7 +547,7 @@ main(int argc, char **argv)
 		mixer.jsources[j] = jsource;
 	}
 
-	const char *client_name = jack_get_client_name(mixer.client);
+	client_name = jack_get_client_name(mixer.client);
 	const int fd = shm_open(client_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 	if(fd != -1)
 	{
